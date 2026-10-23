@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lecture Companion</title>
+<meta name="description" content="An AI study tool that explains lecture slides one by one, like a professor.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<script>
+/* ============================================================
+   EDIT THESE SETTINGS
+   ============================================================ */
+const CONFIG = {
+  author: "Peninah Deichman",
+  // Video: upload to YouTube (Unlisted is fine) and paste the ID, the part after "v=" in the link.
+  // Avoid a video file in the repo: Hugging Face rejects files over 10 MB without Git LFS.
+  youtubeId: "",
+  videoFile: "",
+  githubUrl: "https://github.com/peninahde/lecture_companion",
+  liveUrl: "",     // your Hugging Face Space link, e.g. "https://huggingface.co/spaces/<username>/<space-name>"
+  email: "",       // optional
+  // Screenshots: put these files in this docs/ folder (keep each under ~1 MB).
+  screenshots: [
+    { file: "screenshot-home.png", caption: "Upload a lecture PDF, choose the explanation language, and start." },
+    { file: "screenshot-slides.png", caption: "Each slide next to its explanation, with key terms and the math worked step by step." },
+  ],
+};
+</script>
+<style>
+/* Neutral page; purple only in the title, demo border, primary button and links.
+   Gradient sampled from the app's "Explain lecture" button. Dark is the default. */
+:root {
+  color-scheme: dark;
+  --bg: #0d0d10;
+  --surface: #16161a;
+  --surface-2: #1d1d22;
+  --text: #ededf0;
+  --muted: #a3a3ad;
+  --border: #2a2a31;
+  --border-strong: #4a4a54;
+  --accent: #a48dff;         /* links, small accents */
+  --accent-strong: #7c5cfc;  /* filled button (white text on top) */
+  --grad: linear-gradient(120deg, #7f55fc, #5c83f2 55%, #39c1b3);   /* demo border */
+  --title-grad: linear-gradient(100deg, #a58bff, #7fa2ff 55%, #5fd6c4);
+  --glow: 0 0 0 1px rgba(127,85,252,.25), 0 0 32px rgba(127,85,252,.35), 0 0 72px rgba(57,193,179,.12);
+  --glow-quiet: 0 0 18px rgba(127,85,252,.18);
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+    --bg: #f8f8f6; --surface: #ffffff; --surface-2: #f2f2f0; --text: #1c1d22; --muted: #5d606b;
+    --border: #e3e3df; --border-strong: #b9b9b4; --accent: #5b3fd9; --accent-strong: #6646ec;
+    --title-grad: linear-gradient(100deg, #6a43ea, #4a6ae0 55%, #12907d);
+    --glow: 0 0 0 1px rgba(127,85,252,.15), 0 0 28px rgba(127,85,252,.25), 0 0 64px rgba(57,193,179,.12);
+    --glow-quiet: 0 0 16px rgba(127,85,252,.14);
+    --shadow: 0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.06);
+  }
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f8f8f6; --surface: #ffffff; --surface-2: #f2f2f0; --text: #1c1d22; --muted: #5d606b;
+  --border: #e3e3df; --border-strong: #b9b9b4; --accent: #5b3fd9; --accent-strong: #6646ec;
+  --title-grad: linear-gradient(100deg, #6a43ea, #4a6ae0 55%, #12907d);
+  --glow: 0 0 0 1px rgba(127,85,252,.15), 0 0 28px rgba(127,85,252,.25), 0 0 64px rgba(57,193,179,.12);
+  --glow-quiet: 0 0 16px rgba(127,85,252,.14);
+  --shadow: 0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.06);
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font: 16px/1.6 Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+.wrap { max-width: 1040px; margin: 0 auto; padding: 0 16px; }
+header { padding: 72px 0 40px; display: flex; align-items: center; gap: 40px; }
+.hero-text { flex: 1 1 0; min-width: 0; }
+.frame { display: block; max-width: 100%; height: auto; border-radius: 14px;
+  border: 1px solid var(--border); box-shadow: var(--shadow); background: var(--surface); }
+/* gradient border: surface fills the padding box, gradient shows through the transparent border */
+.card.glow { border: 1.5px solid transparent; box-shadow: var(--glow);
+  background: linear-gradient(var(--surface), var(--surface)) padding-box, var(--grad) border-box; }
+.hero-img { flex: 0 1 50%; min-width: 0; border: 1px solid transparent; box-shadow: var(--glow-quiet);
+  background: linear-gradient(var(--surface), var(--surface)) padding-box, var(--grad) border-box; }
+.eyebrow { font: 500 13px/1 "JetBrains Mono", ui-monospace, monospace; color: var(--accent);
+  letter-spacing: .04em; text-transform: uppercase; }
+h1 { font-size: clamp(36px, 6vw, 56px); line-height: 1.05; margin: 14px 0 16px; letter-spacing: -.02em;
+  width: fit-content; background: var(--title-grad); -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; }
+.lede { font-size: 19px; color: var(--muted); max-width: 640px; margin: 0; }
+.byline { margin-top: 18px; color: var(--muted); font-size: 15px; }
+.buttons { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 10px;
+  font-weight: 600; font-size: 15px; text-decoration: none; border: 1px solid var(--border);
+  color: var(--text); background: var(--surface); }
+.btn.primary { background: var(--accent-strong); border-color: var(--accent-strong); color: #fff; }
+.btn:hover { border-color: var(--border-strong); }
+.btn.primary:hover { filter: brightness(1.08); }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+section { padding: 36px 0; }
+h2 { font-size: 26px; letter-spacing: -.01em; margin: 0 0 8px; }
+.sub { color: var(--muted); margin: 0 0 24px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow); }
+.video { overflow: hidden; aspect-ratio: 16 / 9; }
+.video iframe, .video video { width: 100%; height: 100%; border: 0; display: block; background: #000; }
+.placeholder { display: grid; place-items: center; height: 100%; min-height: 200px; color: var(--muted);
+  text-align: center; padding: 24px; font-size: 15px; }
+.features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.feature { padding: 22px; }
+.feature h3 { margin: 0 0 6px; font-size: 17px; }
+.feature p { margin: 0; color: var(--muted); font-size: 15px; }
+.shots { display: grid; gap: 36px; }
+.shot figure { margin: 0; }
+.shot img { width: 100%; }
+.shot figcaption { padding: 14px 4px 0; color: var(--muted); font-size: 15px; }
+.flow { padding: 28px 20px; overflow-x: auto; }
+.flow-row { display: flex; align-items: center; gap: 10px; min-width: 760px; }
+.node { flex: 1; border-radius: 12px; padding: 14px 12px; text-align: center; font-size: 14px; line-height: 1.35; }
+.node b { display: block; font-size: 15px; margin-bottom: 4px; }
+.node.code { background: var(--surface); border: 1.5px dashed var(--border-strong); }
+.node.llm { background: var(--surface-2); border: 1.5px solid var(--border-strong); }
+.node.io { background: var(--surface); border: 1.5px solid var(--border); flex: .7; }
+.arrow { color: var(--muted); font-size: 20px; flex: 0 0 auto; }
+.stack-col { flex: 1.3; display: flex; flex-direction: column; gap: 8px; }
+.loop { font: 500 12px/1.3 "JetBrains Mono", monospace; color: var(--muted); margin-top: 6px; }
+.legend { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 18px; color: var(--muted); font-size: 14px; min-width: 0; }
+.legend span::before { content: ""; display: inline-block; width: 12px; height: 12px; border-radius: 3px;
+  margin-right: 6px; vertical-align: -1px; }
+.legend .l-llm::before { background: var(--surface-2); border: 1.5px solid var(--border-strong); }
+.legend .l-code::before { background: var(--surface); border: 1.5px dashed var(--border-strong); }
+.patterns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 20px; }
+.pattern { padding: 18px; }
+.pattern .tag { font: 500 12px/1 "JetBrains Mono", monospace; color: var(--accent); }
+.pattern h3 { margin: 8px 0 6px; font-size: 16px; }
+.pattern p { margin: 0; color: var(--muted); font-size: 14.5px; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.list { padding: 22px 24px; }
+.list h3 { margin: 0 0 10px; font-size: 17px; }
+.list ul { margin: 0; padding-left: 18px; color: var(--muted); }
+.list li { margin: 6px 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { font: 500 13px/1 "JetBrains Mono", monospace; padding: 8px 10px; border-radius: 8px;
+  background: var(--surface); border: 1px solid var(--border); }
+footer { padding: 40px 0 56px; color: var(--muted); font-size: 14px; border-top: 1px solid var(--border); margin-top: 24px; }
+footer a { color: var(--accent); }
+.hidden { display: none !important; }
+@media (max-width: 860px) {
+  header { flex-direction: column; align-items: stretch; gap: 32px; }
+  .hero-img { flex: none; }
+}
+@media (max-width: 760px) {
+  header { padding: 48px 0 28px; }
+  .features, .patterns, .two { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="hero-text">
+    <div class="eyebrow">AI study tool · LLM workflow</div>
+    <h1>Lecture Companion</h1>
+    <p class="lede">Upload lecture slides in Hebrew or English. Read each slide next to an explanation written
+      the way a professor would explain it, with every term defined and every calculation worked out.</p>
+    <p class="byline">Built by <span id="author"></span></p>
+    <div class="buttons">
+      <a class="btn primary" href="#demo">▶ Watch the demo</a>
+      <a class="btn" id="github-btn" href="#" target="_blank" rel="noopener">View the code</a>
+      <a class="btn" id="live-btn" href="#" target="_blank" rel="noopener">Try it live</a>
+    </div>
+    </div>
+    <img class="frame hero-img" src="hero.png" alt="Lecture Companion showing a slide next to its explanation" onerror="this.remove()">
+  </header>
+
+  <section id="demo">
+    <h2>Demo</h2>
+    <p class="sub">Two minutes, from uploading a lecture to exporting notes to Notion.</p>
+    <div class="card video glow" id="video-box"></div>
+  </section>
+
+  <section id="shots-section">
+    <h2>Screenshots</h2>
+    <div class="shots" id="shots"></div>
+  </section>
+
+  <section>
+    <h2>Why I built it</h2>
+    <p class="sub">Published lecture slides rarely include the explanations you'd get by sitting in class. When I missed a lecture or reviewed one at night,
+     I kept asking ChatGPT, Gemini, or Claude for the same thing: a slide-by-slide explanation of what the slides leave out, and the reasoning behind the harder math.
+      It worked, but I was always switching between the lecture and the chat window. So I built a tool that shows each slide next to its explanation, and lets me save the summary for later.</p>
+    <div class="features">
+      <div class="card feature"><h3>Side by side</h3><p>Each slide on the left, its explanation on the right. Click through the lecture in order.</p></div>
+      <div class="card feature"><h3>Beginner-friendly</h3><p>Technical terms are defined the first time they appear, and math is shown step by step.</p></div>
+      <div class="card feature"><h3>Study material</h3><p>A summary, glossary and quiz for the whole lecture, downloadable or exported to a Notion page I choose.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>How it works</h2>
+    <p class="sub">A small agentic workflow that combines three standard LLM design patterns.</p>
+    <div class="card flow">
+      <div class="flow-row">
+        <div class="node io"><b>Lecture PDF</b></div>
+        <div class="arrow">→</div>
+        <div class="node code"><b>Read slides</b>render each page and extract its text</div>
+        <div class="arrow">→</div>
+        <div class="stack-col">
+          <div class="node llm"><b>Explain slide 1</b></div>
+          <div class="node llm"><b>Explain slide 2</b></div>
+          <div class="node llm"><b>… slide n</b></div>
+        </div>
+        <div class="arrow">→</div>
+        <div class="node llm"><b>Reviewer</b>checks each explanation against its slide<div class="loop">↺ sends it back once if wrong</div></div>
+        <div class="arrow">→</div>
+        <div class="node llm"><b>Summary + quiz</b>from all explanations</div>
+      </div>
+      <div class="legend"><span class="l-llm">Language model call</span><span class="l-code">Regular code</span></div>
+    </div>
+    <div class="patterns">
+      <div class="card pattern"><div class="tag">01 · Parallelization</div><h3>All slides at once</h3>
+        <p>Every slide is explained concurrently, sent as an image plus its text and its neighbours' text, so diagrams and right-to-left slides read correctly.</p></div>
+      <div class="card pattern"><div class="tag">02 · Evaluator-optimizer</div><h3>A second model checks</h3>
+        <p>A reviewer compares each explanation with the slide and returns feedback if it finds an error, which cuts down on hallucinated details.</p></div>
+      <div class="card pattern"><div class="tag">03 · Prompt chaining</div><h3>One lecture-level view</h3>
+        <p>The finished explanations feed a final call that writes the summary, glossary and quiz.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="two">
+      <div class="card list"><h3>Guardrails</h3><ul>
+        <li>Page limit and at most one revision per slide keep cost predictable</li>
+        <li>Live token counter shows exactly what each lecture costs</li>
+        <li>One failing slide never stops the rest of the lecture</li>
+        <li>Password protection when deployed; API keys kept out of the code</li>
+        <li>Offline mode for testing the interface without spending credit</li>
+      </ul></div>
+      <div class="card list"><h3>Design choices</h3><ul>
+        <li>Slides sent as images, not just text, because Hebrew text layers in PDFs are often garbled</li>
+        <li>Pages that only build up the next slide are detected and skipped</li>
+        <li>Notion export stays manual, so I choose which lectures to keep and where</li>
+        <li>The model is configurable, so it can be swapped for a cheaper or stronger one</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Built with</h2>
+    <div class="chips">
+      <span class="chip">Python</span><span class="chip">OpenAI API</span><span class="chip">Gradio</span>
+      <span class="chip">PyMuPDF</span><span class="chip">Notion API</span><span class="chip">uv</span>
+    </div>
+  </section>
+
+  <footer>
+    <span id="footer-author"></span><span id="footer-links"></span>
+  </footer>
+</div>
+
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  $("author").textContent = CONFIG.author;
+  $("footer-author").textContent = "© " + new Date().getFullYear() + " " + CONFIG.author;
+
+  // Buttons
+  if (CONFIG.githubUrl) $("github-btn").href = CONFIG.githubUrl; else $("github-btn").classList.add("hidden");
+  if (CONFIG.liveUrl) $("live-btn").href = CONFIG.liveUrl; else $("live-btn").classList.add("hidden");
+
+  // Footer links
+  const links = [];
+  if (CONFIG.githubUrl) links.push(`<a href="${CONFIG.githubUrl}" target="_blank" rel="noopener">GitHub</a>`);
+  if (CONFIG.email) links.push(`<a href="mailto:${CONFIG.email}">${CONFIG.email}</a>`);
+  if (links.length) $("footer-links").innerHTML = " · " + links.join(" · ");
+
+  // Video
+  const box = $("video-box");
+  if (CONFIG.youtubeId) {
+    box.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(CONFIG.youtubeId)}"
+      title="Lecture Companion demo" allow="accelerometer; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>`;
+  } else if (CONFIG.videoFile) {
+    const v = document.createElement("video");
+    v.controls = true; v.preload = "metadata"; v.playsInline = true;
+    v.src = CONFIG.videoFile;
+    v.onerror = () => { box.innerHTML = '<div class="placeholder">Demo video coming soon.</div>'; };
+    box.appendChild(v);
+  } else {
+    box.innerHTML = '<div class="placeholder">Demo video coming soon.</div>';
+  }
+
+  // Screenshots (hide any that fail to load; hide the section if none load)
+  const shots = $("shots");
+  let loaded = 0, pending = CONFIG.screenshots.length;
+  const done = () => { if (--pending === 0 && loaded === 0) $("shots-section").classList.add("hidden"); };
+  if (!pending) $("shots-section").classList.add("hidden");
+  CONFIG.screenshots.forEach((s) => {
+    const card = document.createElement("div");
+    card.className = "shot";
+    card.innerHTML = `<figure><img class="frame" alt="" loading="lazy"><figcaption></figcaption></figure>`;
+    const img = card.querySelector("img");
+    img.alt = s.caption; card.querySelector("figcaption").textContent = s.caption;
+    img.onload = () => { loaded++; done(); };
+    img.onerror = () => { card.remove(); done(); };
+    img.src = s.file;
+    shots.appendChild(card);
+  });
+})();
+</script>
+</body>
+</html>
