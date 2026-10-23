@@ -1,0 +1,5 @@
+gradio==6.30.0
+pymupdf==2.0
+openai==3.35.1
+notion-client==3.1.0
+python-dotenv
