@@ -74,7 +74,20 @@ THEME = gr.themes.Base(font=[gr.themes.GoogleFont("DM Sans"), "system-ui", "sans
 THEME.set(**_SHARED, **_LIGHT, **{f"{k}_dark": v for k, v in _DARK.items()})
 
 HEAD = ('<link rel="stylesheet" href="https://fonts.googleapis.com/css2?'
-        'family=Outfit:wght@500;600&display=swap">')
+        'family=Outfit:wght@500;600&display=swap">'
+        # drag a PDF anywhere on the page: hand it to the upload button's hidden <input type=file>
+        """<script>
+addEventListener("dragover", e => { e.preventDefault(); document.body.classList.add("dragging"); });
+addEventListener("dragleave", e => { if (!e.relatedTarget) document.body.classList.remove("dragging"); });
+addEventListener("drop", e => {
+  e.preventDefault(); document.body.classList.remove("dragging");
+  const input = document.querySelector("#pdf-btn")?.parentElement.querySelector("input[type=file]");
+  const file = [...e.dataTransfer.files].find(f => f.name.toLowerCase().endsWith(".pdf"));
+  if (!input || !file) return;
+  const dt = new DataTransfer(); dt.items.add(file);
+  input.files = dt.files; input.dispatchEvent(new Event("change", { bubbles: true }));
+});
+</script>""")
 
 # ponytail: panes sized to the viewport; 255px = bar + tabs + slide stepper + footer (measured). Tweak if it scrolls.
 PANE = "calc(100vh - 255px)"
@@ -125,6 +138,7 @@ body { background-attachment: fixed; }
   width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: transform .2s; }
 #launch .pill input[type=checkbox]:checked { background: linear-gradient(90deg, #7654ff, #18c6b0) !important; }
 #launch .pill input[type=checkbox]:checked::before { transform: translateX(18px); }
+.dragging #pdf-btn { outline: 2px dashed #7654ff; outline-offset: 4px; }
 #go { border-radius: 16px; min-height: 58px; font-size: 17px; }
 /* Hebrew panes are rtl, but code and display math still read left to right */
 #explain pre, #summary pre, #explain .katex-display, #summary .katex-display { direction: ltr; text-align: left; }
@@ -184,14 +198,21 @@ def picked(path):
 
 
 def run(pdf, language, check, skip_builds, tick):
+    # bad input → toast + no-op; gr.Error would overlay every output, including the full-screen #top
+    problem = None
     if not pdf:
-        raise gr.Error("Upload a PDF first.")
-    if not pipeline.MOCK and not os.getenv("OPENAI_API_KEY"):
-        raise gr.Error("OPENAI_API_KEY isn't set (add it to .env locally, or as a Space secret).")
-    try:
-        lecture = pipeline.load_pdf(pdf)
-    except Exception as e:
-        raise gr.Error(str(e))
+        problem = "Upload a PDF first."
+    elif not pipeline.MOCK and not os.getenv("OPENAI_API_KEY"):
+        problem = "OPENAI_API_KEY isn't set (add it to .env locally, or as a Space secret)."
+    else:
+        try:
+            lecture = pipeline.load_pdf(pdf)
+        except Exception as e:
+            problem = str(e)
+    if problem:
+        gr.Warning(problem)
+        yield (gr.update(),) * 9
+        return
 
     n = len(lecture.slides)
     slider = gr.Slider(minimum=1, maximum=max(n, 2), value=1, step=1, interactive=True)
@@ -219,7 +240,7 @@ SHOW_TOP, FULL_PAGE = "⌄ Upload & settings", "⤢ Full page"
 
 def toggle_top(label):
     showing = label == SHOW_TOP  # button offers to show the top, so it's hidden now
-    return gr.update(visible=showing), FULL_PAGE if showing else SHOW_TOP
+    return gr.update(visible=showing), FULL_PAGE if showing else SHOW_TOP, gr.update(visible=not showing)
 
 
 def notion_pages(token):
@@ -284,7 +305,7 @@ with gr.Blocks(title="Lecture Companion", fill_width=True) as demo:
             "every slide, then a summary and quiz.</p>"
         )
         with gr.Row(elem_id="launch"):
-            pdf_btn = gr.UploadButton("📄 Choose lecture PDF", file_types=[".pdf"], type="filepath",
+            pdf_btn = gr.UploadButton("📄 Choose or drop lecture PDF", file_types=[".pdf"], type="filepath",
                                       variant="secondary", elem_id="pdf-btn", elem_classes="pill",
                                       scale=3, min_width=220)
             language = gr.Dropdown([("Explain in: English", "English"), ("Explain in: Hebrew", "Hebrew")],
@@ -340,7 +361,7 @@ with gr.Blocks(title="Lecture Companion", fill_width=True) as demo:
     demo.load(notion_pages, notion_token, [notion_pages_state, notion_parent])
     notion_refresh.click(notion_pages, notion_token, [notion_pages_state, notion_parent])
     pdf_btn.upload(picked, pdf_btn, [pdf, pdf_btn])
-    top_btn.click(toggle_top, top_btn, [top, top_btn])
+    top_btn.click(toggle_top, top_btn, [top, top_btn, main])
     # Gradio marks dark mode with a "dark" class (on body, or the app's parent); flip it in place
     mode_btn.click(None, js="() => (document.querySelector('.dark') || document.body).classList.toggle('dark')")
     tick.change(_view, [lecture_state, slider], [image, explanation])

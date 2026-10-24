@@ -15,16 +15,16 @@
 const CONFIG = {
   author: "Peninah Deichman",
   // Video: upload to YouTube (Unlisted is fine) and paste the ID, the part after "v=" in the link.
-  // Avoid a video file in the repo: Hugging Face rejects files over 10 MB without Git LFS.
-  youtubeId: "",
+  // Keep the video on YouTube: GitHub rejects files over 100 MB and the repo stays light.
+  youtubeId: "I8OCiJjph_U",
   videoFile: "",
   githubUrl: "https://github.com/peninahde/lecture_companion",
-  liveUrl: "",     // your Hugging Face Space link, e.g. "https://huggingface.co/spaces/<username>/<space-name>"
+  liveUrl: "",     // the app runs locally, so the "Try it live" button stays hidden
   email: "",       // optional
   // Screenshots: put these files in this docs/ folder (keep each under ~1 MB).
   screenshots: [
-    { file: "screenshot-home.png", caption: "Upload a lecture PDF, choose the explanation language, and start." },
-    { file: "screenshot-slides.png", caption: "Each slide next to its explanation, with key terms and the math worked step by step." },
+    { file: "screenshot-home.jpg", caption: "Upload a lecture PDF, choose the explanation language, and start." },
+    { file: "screenshot-slides.jpg", caption: "Each slide next to its explanation, with key terms and the math worked step by step." },
   ],
 };
 </script>
@@ -177,7 +177,7 @@ footer a { color: var(--accent); }
 
   <section id="demo">
     <h2>Demo</h2>
-    <p class="sub">Two minutes, from uploading a lecture to exporting notes to Notion.</p>
+    <p class="sub">Two minutes, from uploading a lecture to slide-by-slide notes.</p>
     <div class="card video glow" id="video-box"></div>
   </section>
 
@@ -279,8 +279,8 @@ footer a { color: var(--accent); }
   // Video
   const box = $("video-box");
   if (CONFIG.youtubeId) {
-    box.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(CONFIG.youtubeId)}"
-      title="Lecture Companion demo" allow="accelerometer; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>`;
+    box.innerHTML = `<iframe src="https://www.youtube.com/embed/${encodeURIComponent(CONFIG.youtubeId)}"
+      title="Lecture Companion demo" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>`;
   } else if (CONFIG.videoFile) {
     const v = document.createElement("video");
     v.controls = true; v.preload = "metadata"; v.playsInline = true;
