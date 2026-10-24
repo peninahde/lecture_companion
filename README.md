@@ -6,7 +6,7 @@ technical terms, and step-by-step math. When every slide is done, you get a
 summary, a glossary and a quiz. Results can be downloaded as Markdown or
 exported to Notion.
 
-**Demo:** see the [project page](docs/index.html) for a video walkthrough and screenshots.
+**Demo:** see the [project page](https://peninahde.github.io/lecture_companion/) for a video walkthrough and screenshots.
 
 ## How it works
 
